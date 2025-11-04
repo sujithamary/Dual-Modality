@@ -1,0 +1,17 @@
+torch
+torchvision
+timm
+nibabel
+numpy
+scipy
+opencv-python
+matplotlib
+scikit-image
+pandas
+albumentations
+segmentation-models-pytorch
+tqdm
+reportlab
+streamlit
+pytorch-grad-cam
+einops
