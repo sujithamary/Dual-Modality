@@ -57,7 +57,7 @@ if uploaded:
         # normalize cam
         cam = (cam - cam.min()) / (cam.max() - cam.min() + 1e-8)
         cam_rgb = cv2.applyColorMap((cam*255).astype('uint8'), cv2.COLORMAP_JET)
-        cam_blend = cv2.addWeighted(cv2.cvtColor((flair_chan - flair_chan.min())/(flair_chan.max()-flair_chan.min()+1e-8)*255.0.astype('uint8'), cv2.COLOR_GRAY2BGR), 0.6, cam_rgb, 0.4, 0)
+        cam_blend = cv2.addWeighted(cv2.cvtColor(((flair_chan - flair_chan.min())/(flair_chan.max()-flair_chan.min()+1e-8)*255.0).astype('uint8'), cv2.COLOR_GRAY2BGR), 0.6, cam_rgb, 0.4, 0)
         st.image(cv2.cvtColor(cam_blend, cv2.COLOR_BGR2RGB), caption="Grad-CAM attention map")
         # prepare report
         metadata = {'case_id': os.path.basename(case_folder)}

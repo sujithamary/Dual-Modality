@@ -11,7 +11,7 @@ def get_gradcam_mask(model, input_tensor, target_mask=None, device='cuda'):
     model.eval()
     # pick final encoder layer depending on backbone - for resnet34: model.encoder.layer4
     target_layer = model.encoder.layer4
-    cam = GradCAM(model=model, target_layers=[target_layer], use_cuda=(device=='cuda'))
+    cam = GradCAM(model=model, target_layers=[target_layer])
     if target_mask is None:
         # use mean of model output as target
         out = model(input_tensor.to(device))
@@ -20,7 +20,7 @@ def get_gradcam_mask(model, input_tensor, target_mask=None, device='cuda'):
         mask = (out>thr).float()
     else:
         mask = target_mask
-    targets = [SemanticSegmentationTarget(mask.cpu().numpy()[0,0,:,:])]
+    targets = [SemanticSegmentationTarget(mask=mask.cpu().numpy()[0,0,:,:], category=0)]
     grayscale_cam = cam(input_tensor=input_tensor.to(device), targets=targets)
     # cam returns [B, H, W]
     return grayscale_cam[0]
