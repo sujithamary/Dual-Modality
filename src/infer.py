@@ -1,9 +1,9 @@
 import os
 import torch
 import numpy as np
-from src.io import load_case
-from src.preprocess import make_4ch_slice
-from src.model_unet import get_unet
+from io_utils import load_case
+from preprocess import make_4ch_slice
+from model_unet import get_unet
 import cv2
 
 def infer_case(case_folder, ckpt='checkpoints/best.pt', device='cuda'):
@@ -33,4 +33,3 @@ if __name__ == '__main__':
     pred = res[best_z]
     cv2.imwrite("pred_slice.png", (pred*255).astype('uint8'))
     print("Saved pred_slice.png for slice", best_z)
-PY

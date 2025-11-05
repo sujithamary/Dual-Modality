@@ -1,7 +1,7 @@
 # app.py
 import streamlit as st
 import tempfile, os, zipfile
-from src.io import load_case
+from src.io_utils import load_case
 from src.preprocess import make_4ch_slice, normalize_img
 from src.model_unet import get_unet
 from src.visualize import get_gradcam_mask, overlay_mask_on_image

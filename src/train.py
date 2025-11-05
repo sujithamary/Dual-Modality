@@ -2,16 +2,32 @@ import os
 import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-from src.datasets import BraTSSliceDataset
-from src.model_unet import get_unet
-from src.utils import bce_dice_loss, dice_coeff
+from datasets import BraTSSliceDataset
+from model_unet import get_unet
+from utils import bce_dice_loss, dice_coeff
+
+def collate_fn(batch):
+    # Filter out None samples
+    batch = [b for b in batch if b is not None]
+    return torch.utils.data.default_collate(batch) if len(batch) > 0 else None
 
 def run_training(case_folders, out_dir='checkpoints', epochs=30, batch_size=8, lr=1e-4, device='cuda'):
     os.makedirs(out_dir, exist_ok=True)
+
+    print("Initializing dataset...")
     train_ds = BraTSSliceDataset(case_folders, with_mask=True)
-    tr_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True, num_workers=4)
+    print(f"Dataset ready: {len(train_ds)} samples found")
+
+    print("Preparing DataLoader...")
+    tr_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True, num_workers=4, collate_fn=collate_fn)
+    print(f"DataLoader initialized | Batch size: {batch_size} | Num workers: 4")
+    
+    print("Initializing model and optimizer...")
     model = get_unet().to(device)
+    print(f"Model loaded to device: {device} | Learning rate: {lr}")
+
     opt = torch.optim.AdamW(model.parameters(), lr=lr)
+    print(f"Starting training for {epochs} epochs...")
     best_dice = 0.0
     for epoch in range(1, epochs+1):
         model.train()
@@ -49,4 +65,3 @@ if __name__ == '__main__':
     args = parser.parse_args()
     case_dirs = [os.path.join(args.cases_dir, d) for d in os.listdir(args.cases_dir) if os.path.isdir(os.path.join(args.cases_dir, d))]
     run_training(case_dirs, out_dir=args.out, epochs=args.epochs, batch_size=args.batch)
-PY

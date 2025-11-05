@@ -2,32 +2,56 @@
 from torch.utils.data import Dataset
 import torch
 import numpy as np
-from src.io import load_case
-from src.preprocess import make_4ch_slice
+from io_utils import load_case
+from preprocess import make_4ch_slice
+import cv2
+
+from torch.utils.data import Dataset
+import nibabel as nib
+import numpy as np
+import torch
+import os
 
 class BraTSSliceDataset(Dataset):
-    def __init__(self, case_folders, transform=None, target_size=256, with_mask=True):
-        self.cases = case_folders
-        self.transform = transform
-        self.target_size = target_size
+    def __init__(self, case_dirs, with_mask=True):
         self.with_mask = with_mask
-        self.index = []
-        for c in self.cases:
-            imgs, seg = load_case(c)
-            Z = list(imgs.values())[0].shape[2]
-            for z in range(Z):
-                # optionally only add slices with tissue
-                self.index.append((c,z))
-    def __len__(self): return len(self.index)
+        self.samples = []
+        for case_dir in case_dirs:
+            flair = os.path.join(case_dir, f"{os.path.basename(case_dir)}_flair.nii")
+            t1 = os.path.join(case_dir, f"{os.path.basename(case_dir)}_t1.nii")
+            t1ce = os.path.join(case_dir, f"{os.path.basename(case_dir)}_t1ce.nii")
+            t2 = os.path.join(case_dir, f"{os.path.basename(case_dir)}_t2.nii")
+            if not all(os.path.exists(p) for p in [flair, t1, t1ce, t2]):
+                print(f"⚠️ Skipping incomplete case: {case_dir}")
+                continue
+            seg = os.path.join(case_dir, f"{os.path.basename(case_dir)}_seg.nii") if with_mask else None
+            self.samples.append((flair, t1, t1ce, t2, seg))
+
+    def __len__(self):
+        return len(self.samples)
+
     def __getitem__(self, idx):
-        c,z = self.index[idx]
-        imgs, seg = load_case(c)
-        x = make_4ch_slice(imgs, z, self.target_size)
-        mask = None
-        if self.with_mask and seg is not None:
-            m = seg[:,:,z]
-            m = cv2.resize(m, (self.target_size, self.target_size), interpolation=cv2.INTER_NEAREST)
-            m = (m>0).astype('float32')
-            mask = m[np.newaxis,...]
-        x = x.astype('float32')
-        return {'image':torch.from_numpy(x), 'mask': None if mask is None else torch.from_numpy(mask)}
+        try:
+            flair, t1, t1ce, t2, seg = self.samples[idx]
+            imgs = [nib.load(p).get_fdata() for p in [flair, t1, t1ce, t2]]
+            img = np.stack(imgs, axis=0).astype(np.float32)
+            img = (img - img.mean()) / (img.std() + 1e-5)
+
+            # take a random slice
+            z = np.random.randint(0, img.shape[-1])
+            img_slice = img[:, :, :, z]
+
+            sample = {'image': torch.from_numpy(img_slice)}
+
+            if self.with_mask and seg is not None:
+                m = nib.load(seg).get_fdata()
+                m_slice = (m[:, :, z] > 0).astype(np.float32)
+                sample['mask'] = torch.from_numpy(m_slice[None, ...])
+            else:
+                sample['mask'] = torch.zeros((1, img.shape[1], img.shape[2]))
+
+            return sample
+
+        except Exception as e:
+            print(f"⚠️ Skipping index {idx} due to error: {e}")
+            return None

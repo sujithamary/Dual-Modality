@@ -1,3 +1,9 @@
 venv/
 
 data/
+
+pred_slice.png
+
+checkpoints/
+
+__pycache__/
