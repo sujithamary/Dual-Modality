@@ -5,7 +5,7 @@ from src.io_utils import load_case
 from src.preprocess import make_4ch_slice, normalize_img
 from src.model_unet import get_unet
 from src.visualize import get_gradcam_mask, overlay_mask_on_image
-from src.report import compose_report
+from report.report import compose_report
 import torch
 import numpy as np
 import cv2
