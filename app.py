@@ -1,14 +1,16 @@
 # app.py
 import streamlit as st
 import tempfile, os, zipfile
+import torch
+import numpy as np
+import cv2
+
 from src.io_utils import load_case
 from src.preprocess import make_4ch_slice, normalize_img
 from src.model_unet import get_unet
 from src.visualize import get_gradcam_mask, overlay_mask_on_image
-from report.report import compose_report
-import torch
-import numpy as np
-import cv2
+from src.report.report import compose_report
+from src.report.report_builder import build_report_content
 
 st.set_page_config(layout="wide")
 st.title("AI Brain Tumor Preoperative Assistant (MRI-only)")
@@ -59,14 +61,20 @@ if uploaded:
         cam_rgb = cv2.applyColorMap((cam*255).astype('uint8'), cv2.COLORMAP_JET)
         cam_blend = cv2.addWeighted(cv2.cvtColor(((flair_chan - flair_chan.min())/(flair_chan.max()-flair_chan.min()+1e-8)*255.0).astype('uint8'), cv2.COLOR_GRAY2BGR), 0.6, cam_rgb, 0.4, 0)
         st.image(cv2.cvtColor(cam_blend, cv2.COLOR_BGR2RGB), caption="Grad-CAM attention map")
+        
         # prepare report
-        metadata = {'case_id': os.path.basename(case_folder)}
+        # metadata = {'case_id': os.path.basename(case_folder)}
+        
         # basic findings
-        tumor_present = pred.mean() > 0.001
-        summary = f"Tumor present: {'Yes' if tumor_present else 'No'}. Slice index: {z_cand}."
-        detailed = "Automated segmentation performed. This is an AI-assisted report; for any clinical decision consult a radiologist."
-        images = {'Segmentation overlay': cv2.cvtColor(ov, cv2.COLOR_BGR2RGB), 'Attention map': cv2.cvtColor(cam_blend, cv2.COLOR_BGR2RGB)}
+        # tumor_present = pred.mean() > 0.001
+        # summary = f"Tumor present: {'Yes' if tumor_present else 'No'}. Slice index: {z_cand}."
+        # detailed = "Automated segmentation performed. This is an AI-assisted report; for any clinical decision consult a radiologist."
+        # images = {'Segmentation overlay': cv2.cvtColor(ov, cv2.COLOR_BGR2RGB), 'Attention map': cv2.cvtColor(cam_blend, cv2.COLOR_BGR2RGB)}
+
+        metadata, findings, images = build_report_content(case_folder, pred, ov, cam_blend, z_cand)
         outpdf = os.path.join(tmpdir.name, "report.pdf")
-        compose_report(outpdf, metadata, {'summary': summary, 'detailed': detailed}, images)
+
+        compose_report(outpdf, metadata, findings, images)
+        
         with open(outpdf, "rb") as f:
             st.download_button("Download PDF report", f, file_name="report.pdf")
