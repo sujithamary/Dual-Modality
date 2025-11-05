@@ -13,5 +13,3 @@ segmentation-models-pytorch
 tqdm
 reportlab
 streamlit
-pytorch-grad-cam
-einops
