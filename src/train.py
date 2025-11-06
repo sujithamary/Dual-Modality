@@ -6,12 +6,15 @@ from datasets import BraTSSliceDataset
 from model_unet import get_unet
 from utils import bce_dice_loss, dice_coeff
 
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+print("Using device:", device)
+
 def collate_fn(batch):
-    # Filter out None samples
+    
     batch = [b for b in batch if b is not None]
     return torch.utils.data.default_collate(batch) if len(batch) > 0 else None
 
-def run_training(case_folders, out_dir='checkpoints', epochs=30, batch_size=8, lr=1e-4, device='cuda'):
+def run_training(case_folders, out_dir='checkpoints', epochs=30, batch_size=8, lr=1e-4, device=device):
     os.makedirs(out_dir, exist_ok=True)
 
     print("Initializing dataset...")
@@ -42,7 +45,7 @@ def run_training(case_folders, out_dir='checkpoints', epochs=30, batch_size=8, l
             opt.step()
             total_loss += loss.item()
         avg_loss = total_loss / len(tr_loader)
-        # quick validation on a small subset (here we reuse train for speed)
+        
         model.eval()
         with torch.no_grad():
             imgs = next(iter(tr_loader))['image'].to(device)

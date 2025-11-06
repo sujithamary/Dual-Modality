@@ -28,7 +28,7 @@ if __name__ == '__main__':
     parser.add_argument("--ckpt", default="checkpoints/best.pt")
     args = parser.parse_args()
     res, imgs, seg = infer_case(args.case, args.ckpt)
-    # save best slice example
+    
     best_z = max(res.keys(), key=lambda k: res[k].sum())
     pred = res[best_z]
     cv2.imwrite("pred_slice.png", (pred*255).astype('uint8'))

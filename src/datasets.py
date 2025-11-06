@@ -1,4 +1,3 @@
-# src/datasets.py
 from torch.utils.data import Dataset
 import torch
 import numpy as np
@@ -37,7 +36,6 @@ class BraTSSliceDataset(Dataset):
             img = np.stack(imgs, axis=0).astype(np.float32)
             img = (img - img.mean()) / (img.std() + 1e-5)
 
-            # take a random slice
             z = np.random.randint(0, img.shape[-1])
             img_slice = img[:, :, :, z]
 
